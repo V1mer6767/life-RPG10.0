@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>Life RPG 10.0</title>
+
+<style>
+
+*{box-sizing:border-box}
+
+body{
+margin:0;
+font-family:system-ui;
+background:#0f172a;
+color:white;
+max-width:420px;
+margin:auto;
+}
+
+header{
+background:#1e293b;
+padding:15px;
+text-align:center;
+font-size:20px;
+font-weight:600;
+}
+
+.card{
+background:#1e293b;
+margin:12px;
+padding:16px;
+border-radius:16px;
+box-shadow:0 4px 20px rgba(0,0,0,.25);
+}
+
+.profile{text-align:center}
+
+.avatar{
+font-size:48px;
+margin-bottom:6px;
+}
+
+.stats{
+display:flex;
+justify-content:space-between;
+margin-top:10px;
+font-size:14px;
+}
+
+.xpbar{
+height:12px;
+background:#334155;
+border-radius:8px;
+overflow:hidden;
+margin-top:10px;
+}
+
+.xpfill{
+height:100%;
+background:linear-gradient(90deg,#22c55e,#4ade80);
+width:0%;
+transition:.3s;
+}
+
+button{
+width:100%;
+padding:14px;
+margin-top:10px;
+border:none;
+border-radius:12px;
+background:#3b82f6;
+color:white;
+font-size:15px;
+cursor:pointer;
+}
+
+button:active{
+transform:scale(.97);
+}
+
+.tab{display:none;padding-bottom:80px}
+.tab.active{display:block}
+
+.menu{
+position:fixed;
+bottom:0;
+left:0;
+right:0;
+background:#1e293b;
+display:flex;
+justify-content:space-around;
+padding:12px;
+max-width:420px;
+margin:auto;
+}
+
+.menu button{
+width:60px;
+height:45px;
+font-size:20px;
+padding:0;
+}
+
+.item{
+background:#334155;
+padding:10px;
+border-radius:10px;
+margin-top:6px;
+font-size:14px;
+}
+
+</style>
+</head>
+
+<body>
+
+<header>🎮 LIFE RPG</header>
+
+<div class="card profile">
+
+<div class="avatar" id="avatar"></div>
+
+<div id="careerName"></div>
+
+<div class="stats">
+
+<div>LVL <span id="level"></span></div>
+<div>💰 <span id="coins"></span></div>
+<div>⚡ <span id="energy"></span></div>
+
+</div>
+
+<div style="margin-top:6px">
+XP <span id="xp"></span>/100
+</div>
+
+<div class="xpbar">
+<div class="xpfill" id="xpbar"></div>
+</div>
+
+</div>
+
+<div id="quests" class="tab active">
+
+<div class="card">
+
+<h3>⚔️ Квести</h3>
+
+<button onclick="study()">📚 Навчання +20XP</button>
+<button onclick="work()">💼 Робота +20💰</button>
+<button onclick="gym()">🏋️ Зал +10XP</button>
+
+</div>
+
+</div>
+
+<div id="career" class="tab">
+
+<div class="card">
+
+<h3>🧑‍💼 Кар'єра</h3>
+
+<button onclick="chooseCareer('👨‍💻 Developer')">👨‍💻 Developer</button>
+<button onclick="chooseCareer('🎨 Designer')">🎨 Designer</button>
+<button onclick="chooseCareer('🏋️ Trainer')">🏋️ Trainer</button>
+<button onclick="resetGame()">🔄 Скинути прогрес</button>
+</div>
+
+</div>
+
+<div id="inventory" class="tab">
+
+<div class="card">
+
+<h3>🎒 Інвентар</h3>
+
+<div id="items"></div>
+
+</div>
+
+</div>
+
+<div id="shop" class="tab">
+
+<div class="card">
+
+<h3>🛒 Магазин</h3>
+
+<button onclick="buyEnergy()">⚡ Енергія (30💰)</button>
+<button onclick="buyItem()">🎁 Таємний предмет (50💰)</button>
+<button onclick="changeAvatar()">🎭 Новий аватар (20💰)</button>
+
+</div>
+
+</div>
+
+<div id="leaderboard" class="tab">
+
+<div class="card">
+
+<h3>🏆 Leaderboard</h3>
+
+<div id="leader"></div>
+
+</div>
+
+</div>
+
+<div class="menu">
+
+<button onclick="openTab('quests')">⚔️</button>
+<button onclick="openTab('career')">💼</button>
+<button onclick="openTab('inventory')">🎒</button>
+<button onclick="openTab('shop')">🛒</button>
+<button onclick="openTab('leaderboard')">🏆</button>
+
+</div>
+
+<script>
+
+let game
+
+function newGame(){
+return{
+level:1,
+xp:0,
+coins:50,
+energy:100,
+career:"Без роботи",
+avatar:"🙂",
+items:[],
+quests:0
+}
+}
+
+function loadGame(){
+
+let save=localStorage.getItem("lifeRPG")
+
+if(save){
+game=JSON.parse(save)
+}else{
+game=newGame()
+saveGame()
+}
+
+}
+
+function saveGame(){
+localStorage.setItem("lifeRPG",JSON.stringify(game))
+}
+
+function updateUI(){
+
+level.innerText=game.level
+coins.innerText=game.coins
+energy.innerText=game.energy
+xp.innerText=game.xp
+careerName.innerText=game.career
+avatar.innerText=game.avatar
+
+xpbar.style.width=game.xp+"%"
+
+updateInventory()
+updateLeaderboard()
+
+}
+
+function addXP(x){
+
+game.xp+=x
+
+if(game.xp>=100){
+
+game.level++
+game.xp=0
+game.energy=100
+
+alert("🎉 Новий рівень!")
+
+}
+
+}
+
+function study(){
+
+if(game.energy<10)return alert("Нема енергії")
+
+game.energy-=10
+addXP(20)
+game.quests++
+
+saveGame()
+updateUI()
+
+}
+
+function work(){
+
+if(game.energy<15)return alert("Нема енергії")
+
+game.energy-=15
+game.coins+=20
+game.quests++
+
+saveGame()
+updateUI()
+
+}
+
+function gym(){
+
+if(game.energy<10)return alert("Нема енергії")
+
+game.energy-=10
+addXP(10)
+game.quests++
+
+saveGame()
+updateUI()
+
+}
+
+function chooseCareer(c){
+
+game.career=c
+
+saveGame()
+updateUI()
+
+}
+
+function buyEnergy(){
+
+if(game.coins<30)return alert("Мало монет")
+
+game.coins-=30
+game.energy+=50
+
+saveGame()
+updateUI()
+
+}
+
+function buyItem(){
+
+if(game.coins<50)return alert("Мало монет")
+
+let loot=["💎 Камінь сили","📖 Книга знань","⚔️ Меч продуктивності","🧠 Амулет дисципліни"]
+
+let item=loot[Math.floor(Math.random()*loot.length)]
+
+game.items.push(item)
+
+game.coins-=50
+
+saveGame()
+updateUI()
+
+}
+
+function changeAvatar(){
+
+if(game.coins<20)return alert("Мало монет")
+
+let avatars=["🙂","😎","🤖","🧙","🐱","👑","🧑‍💻"]
+
+game.avatar=avatars[Math.floor(Math.random()*avatars.length)]
+
+game.coins-=20
+
+saveGame()
+updateUI()
+
+}
+
+function updateInventory(){
+
+items.innerHTML=""
+
+game.items.forEach(i=>{
+items.innerHTML+=`<div class="item">${i}</div>`
+})
+
+}
+
+function updateLeaderboard(){
+
+let best=localStorage.getItem("bestLevel")
+
+if(!best || game.level>best){
+localStorage.setItem("bestLevel",game.level)
+best=game.level
+}
+
+leader.innerHTML=`
+<div class="item">Твій рівень: ${game.level}</div>
+<div class="item">Рекорд: ${best}</div>
+<div class="item">Виконано квестів: ${game.quests}</div>
+`
+
+}
+
+function openTab(tab){
+
+document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"))
+
+document.getElementById(tab).classList.add("active")
+
+}
+
+loadGame()
+updateUI()
+
+</script>
+
+</body>
+</html>
